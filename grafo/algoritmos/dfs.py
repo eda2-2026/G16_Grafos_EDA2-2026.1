@@ -14,9 +14,6 @@ def dfs(grafo: Grafo, origem: int, destino: int) -> dict:
     - ``rotas``     : list[list[int]] — todas as rotas encontradas (cada
                                         rota é a lista de ids em ordem)
     - ``num_rotas`` : int       — total de rotas distintas encontradas
-
-    Complexidade: O(V! · E) no pior caso (grafo completo), mas na prática
-    o backtracking poda rapidamente caminhos sem saída.
     """
     if not grafo.existe_local(origem) or not grafo.existe_local(destino):
         return {"alcancavel": False, "rotas": [], "num_rotas": 0}
@@ -48,12 +45,6 @@ def _dfs_recursivo(
     caminho_atual: list[int],
     rotas_encontradas: list[list[int]],
 ) -> None:
-    """Passo recursivo do DFS com backtracking.
-
-    Marca o nó atual como visitado, acrescenta ao caminho e explora cada
-    vizinho ainda não visitado.  Ao atingir o destino, registra uma cópia
-    do caminho.  Antes de retornar, desfaz a marcação (backtrack).
-    """
     # --- entra no nó atual ---
     visitado.add(no_atual)
     caminho_atual.append(no_atual)

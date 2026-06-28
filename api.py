@@ -120,7 +120,7 @@ def gerar_massa_teste(quantidade: int):
     return {"mensagem": f"{quantidade} encomendas criadas com destinos aleatórios!"}
 
 
-# --- Rota para Visualizar a Árvore (bônus!) ---
+# --- Rota para Visualizar a Árvore  ---
 def serializar_nodo(nodo, arvore):
     from arvore.nodo import PRETO, VERMELHO
     if nodo is arvore._nil:

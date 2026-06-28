@@ -1,8 +1,8 @@
-# Sistema de Encomendas
+# Sistema de Encomendas - Grafo
 
-Trabalho 3 da disciplina de Estruturas de Dados 2 (EDA2 - 2026.1), ministrada pelo Prof. Maurício Serrano — UnB.
+Trabalho 4 da disciplina de Estruturas de Dados 2 (EDA2 - 2026.1), ministrada pelo Prof. Maurício Serrano — UnB.
 
-Esse trabalho é uma continuação do Trabalho 2 da disciplina, agora implementando uma **Árvore Rubro-Negra** como estrutura de armazenamento principal do sistema de gerenciamento de encomendas.
+Esse trabalho é uma continuação do Trabalho 3 da disciplina, agora implementando **grafos** como estrutura de armazenamento principal do sistema de gerenciamento de encomendas.
 
 ## Integrantes
 
@@ -16,20 +16,33 @@ Esse trabalho é uma continuação do Trabalho 2 da disciplina, agora implementa
 ```
 .
 ├── main.py              # Ponto de entrada e menu interativo
-├── encomenda.py         # Modelo de dados: classe Encomenda
-├── gerenciador.py       # GerenciadorEncomendas: CRUD + ordenação + buscas por árvore
+├── api.py               # API FastAPI: endpoints REST de encomendas e do grafo
+├── index.html           # Frontend (visualização da árvore e do grafo com D3)
+├── encomenda.py         # Modelo de dados: classe Encomenda (com destino_id)
+├── gerenciador.py       # GerenciadorEncomendas: CRUD + ordenação + buscas + análise de rota
 ├── arvore/
 │   ├── __init__.py      # Expõe ArvoreRubroNegra
 │   ├── nodo.py          # Nodo com chave, valor e cor (VERMELHO/PRETO)
-│   └── rubro_negra.py   # Árvore Rubro-Negra genérica (CLRS cap. 13)
-└── algoritmos/
-    ├── __init__.py      # Expõe o dicionário ALGORITMOS
-    ├── insertion.py     # Insertion Sort
-    ├── selection.py     # Selection Sort
-    ├── counting.py      # Counting Sort
-    ├── quick.py         # Quick Sort
-    ├── radix_lsd.py     # Radix Sort (LSD)
-    └── radix_msd.py     # Radix Sort (MSD)
+│   └── rubro_negra.py   # Árvore Rubro-Negra genérica 
+├── algoritmos/
+│   ├── __init__.py      # Expõe o dicionário ALGORITMOS
+│   ├── insertion.py     # Insertion Sort
+│   ├── selection.py     # Selection Sort
+│   ├── counting.py      # Counting Sort
+│   ├── quick.py         # Quick Sort
+│   ├── radix_lsd.py     # Radix Sort (LSD)
+│   └── radix_msd.py     # Radix Sort (MSD)
+└── grafo/
+    ├── __init__.py      # Expõe Grafo, Local e o grafo-semente
+    ├── grafo.py         # Grafo dirigido e ponderado (lista de adjacência)
+    ├── local.py         # Local: vértice com nome e coordenadas (x, y)
+    ├── semente.py       # grafo_semente(): mapa inicial de locais do DF
+    └── algoritmos/
+        ├── __init__.py  # Expõe bfs, dfs, dijkstra e Kosaraju
+        ├── bfs.py       # Busca em Largura — menor número de saltos
+        ├── dfs.py       # Busca em Profundidade — todas as rotas simples
+        ├── dijkstra.py  # Dijkstra — menor caminho ponderado (km)
+        └── kosaraju.py  # Kosaraju — componentes fortemente conectados
 ```
 
 ## Funcionamento
@@ -44,6 +57,7 @@ Cada encomenda cadastrada possui os seguintes atributos:
 | `peso` | Peso do pacote (kg) |
 | `quantidade` | Quantidade de itens |
 | `prioridade` | Nível de prioridade da entrega (1–5) |
+| `destino_id` | Id do `Local` no grafo para onde a encomenda será entregue (opcional) |
 
 ### Árvore Rubro-Negra
 
@@ -90,6 +104,48 @@ As encomendas podem ser ordenadas por qualquer atributo usando os algoritmos aba
 | Quick Sort | O(n log n) | O(n²) | Não |
 
 > `n` = número de encomendas, `k` = número de dígitos/chaves
+
+## Grafo de Locais de Entrega
+
+O sistema agora modela a **rede de entrega** como um
+**grafo dirigido e ponderado**. Cada encomenda pode ser vinculada a um destino
+e o sistema calcula rotas a partir do **Depósito Central** (id `0`, origem padrão).
+
+### Estrutura do grafo
+
+| Componente | Descrição |
+|------------|-----------|
+| `Local` | Vértice do grafo: um local de entrega com `id`, `nome` e coordenadas `(x, y)` para desenho |
+| `Grafo` | Grafo dirigido e ponderado em **lista de adjacência**; cada aresta carrega a distância (km) entre dois locais. Vias de mão dupla são modeladas por duas arestas |
+| `grafo_semente()` | Mapa inicial de locais do DF (Plano Piloto, Taguatinga, região Norte…) já conectados, com regiões fortemente conectadas e pontes de mão única entre elas |
+
+O `Grafo` oferece operações de manutenção em tempo constante ou linear: `adicionar_local`,
+`remover_local`, `adicionar_estrada` (com opção `bidirecional`), `remover_estrada`,
+`vizinhos`, `peso` e `serializar` (exporta locais e estradas em JSON para o frontend D3).
+
+### Algoritmos de grafo
+
+Ao analisar a rota de uma encomenda, o sistema executa quatro algoritmos do
+Depósito até o destino e combina os resultados:
+
+| Algoritmo | O que faz | Resposta que entrega | Complexidade |
+|-----------|-----------|----------------------|--------------|
+| **BFS** (Busca em Largura) | Explora o grafo por camadas a partir da origem | Menor número de **saltos** (estradas) até o destino, o caminho correspondente e quantos caminhos mínimos distintos existem | O(V + E) |
+| **DFS** (Busca em Profundidade) | Percorre em profundidade com *backtracking* | **Todas as rotas simples** (sem repetir locais) entre origem e destino | O(V + E) por rota |
+| **Dijkstra** | Expande sempre o vértice de menor custo usando uma *min-heap* própria | Menor caminho **ponderado pela distância em km** e a distância mínima até cada local | O((V + E) log V) |
+| **Kosaraju** | Duas passagens de DFS (grafo original + transposto) | **Componentes fortemente conectados (SCCs)**: indica se o destino está na mesma região do depósito e se o **retorno é garantido** | O(V + E) |
+
+> `V` = número de locais, `E` = número de estradas
+
+### Análise de rota e agrupamento de entregas
+
+- **Análise de rota individual** — para uma encomenda com destino definido, combina BFS, DFS,
+  Dijkstra e Kosaraju, indicando se há **entrega direta** (aresta única origem→destino), o menor
+  caminho em saltos, o menor caminho em km, todas as rotas possíveis e se o retorno ao depósito é garantido.
+- **Análise de múltiplas entregas** (`analisar_rotas`) — usa os SCCs de Kosaraju para agrupar
+  vários destinos por região e dizer se todas as entregas cabem em **uma rota única** ou se é
+  preciso dividir em **rotas separadas**, sinalizando destinos inalcançáveis ou inexistentes.
+
 
 ## Requisitos
 

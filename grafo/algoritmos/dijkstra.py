@@ -107,8 +107,6 @@ def dijkstra(grafo: Grafo, origem: int, destino: int) -> dict:
                                       ([] se inalcançável)
     - ``distancias``  : dict[int, float] — distância mínima de origem até
                                            cada vértice do grafo
-
-    Complexidade: O((V + E) log V) com a min-heap implementada acima.
     """
     if not grafo.existe_local(origem) or not grafo.existe_local(destino):
         return {

@@ -2,15 +2,6 @@ from __future__ import annotations
 
 from grafo.grafo import Grafo
 
-
-# ---------------------------------------------------------------------------
-# Fila simples implementada manualmente.
-#
-# Internamente usa uma lista com um índice de "início" (head) para evitar
-# o custo O(n) de remover o primeiro elemento a cada dequeue.  É equivalente
-# a uma queue circular simplificada, suficiente para BFS.
-# ---------------------------------------------------------------------------
-
 class _Fila:
     """Fila FIFO de uso geral implementada sobre lista."""
 
@@ -32,10 +23,6 @@ class _Fila:
         return self._head >= len(self._dados)
 
 
-# ---------------------------------------------------------------------------
-# BFS principal
-# ---------------------------------------------------------------------------
-
 def bfs(grafo: Grafo, origem: int, destino: int) -> dict:
     """Busca em Largura (BFS) de ``origem`` até ``destino``.
 
@@ -47,8 +34,6 @@ def bfs(grafo: Grafo, origem: int, destino: int) -> dict:
                                    ([] se inalcançável)
     - ``num_caminhos_minimos``: int — quantos caminhos distintos de comprimento
                                       mínimo existem entre origem e destino
-
-    Complexidade: O(V + E).
     """
     if not grafo.existe_local(origem) or not grafo.existe_local(destino):
         return {
