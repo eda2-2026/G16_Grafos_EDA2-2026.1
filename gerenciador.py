@@ -4,6 +4,12 @@ from encomenda import Encomenda
 from algoritmos import ALGORITMOS
 
 from arvore import ArvoreRubroNegra
+from grafo.grafo import Grafo
+from grafo.semente import grafo_semente, DEPOSITO_ID
+from grafo.algoritmos.bfs import bfs
+from grafo.algoritmos.dfs import dfs
+from grafo.algoritmos.dijkstra import dijkstra
+from grafo.algoritmos.kosaraju import componentes_fortemente_conectados
 
 _ATRIBUTOS_VALIDOS = {"nome", "id", "data_postagem", "peso", "quantidade", "prioridade"}
 
@@ -13,6 +19,7 @@ class GerenciadorEncomendas:
         self._arvore_id = ArvoreRubroNegra()
         self._arvore_prioridade = ArvoreRubroNegra()
         self._proximo_id = 1
+        self.grafo: Grafo = grafo_semente()  # grafo compartilhado com todos os endpoints
 
 
     def criar(
@@ -93,6 +100,92 @@ class GerenciadorEncomendas:
     def buscar_por_intervalo_data(self, inicio: date, fim: date) -> list[Encomenda]:
         return [enc for enc in self._arvore_id.traversal_inorder()
                 if inicio <= enc.data_postagem <= fim]
+
+    # ------------------------------------------------------------------
+    # Integração com o grafo
+    # ------------------------------------------------------------------
+
+    def definir_destino(self, id_enc: int, destino_id: int) -> Encomenda | None:
+        """Vincula uma encomenda a um Local do grafo. Retorna None se a
+        encomenda ou o local não existirem."""
+        enc = self.buscar_por_id(id_enc)
+        if enc is None:
+            return None
+        if not self.grafo.existe_local(destino_id):
+            return None
+        enc.destino_id = destino_id
+        return enc
+
+    def analisar_rota(self, id_enc: int) -> dict | None:
+        """Roda BFS, DFS, Dijkstra e Kosaraju do depósito até o destino
+        da encomenda. Retorna None se a encomenda não existir ou não
+        tiver destino definido."""
+        enc = self.buscar_por_id(id_enc)
+        if enc is None or enc.destino_id is None:
+            return None
+
+        origem = DEPOSITO_ID
+        destino = enc.destino_id
+        g = self.grafo
+
+        # --- entrega direta: existe aresta única origem -> destino? ---
+        entrega_direta = g.existe_estrada(origem, destino)
+
+        # --- BFS ---
+        resultado_bfs = bfs(g, origem, destino)
+        nomes_bfs = [g.buscar_local(v).nome for v in resultado_bfs["caminho"]]
+
+        # --- DFS ---
+        resultado_dfs = dfs(g, origem, destino)
+        rotas_dfs = [
+            [g.buscar_local(v).nome for v in rota]
+            for rota in resultado_dfs["rotas"]
+        ]
+
+        # --- Dijkstra ---
+        resultado_dij = dijkstra(g, origem, destino)
+        nomes_dij = [g.buscar_local(v).nome for v in resultado_dij["caminho"]]
+
+        # --- Kosaraju: mesmo SCC? ---
+        componentes = componentes_fortemente_conectados(g)
+        comp_de: dict[int, int] = {}
+        for i, comp in enumerate(componentes):
+            for no in comp:
+                comp_de[no] = i
+        mesmo_scc = comp_de.get(origem) == comp_de.get(destino)
+
+        destino_local = g.buscar_local(destino)
+
+        return {
+            "encomenda_id": enc.id,
+            "encomenda_nome": enc.nome,
+            "destino_id": destino,
+            "destino_nome": destino_local.nome if destino_local else str(destino),
+            "deposito_id": origem,
+            "entrega_direta": entrega_direta,
+            "bfs": {
+                "alcancavel": resultado_bfs["alcancavel"],
+                "distancia_saltos": resultado_bfs["distancia_saltos"],
+                "caminho": resultado_bfs["caminho"],
+                "caminho_nomes": nomes_bfs,
+                "num_caminhos_minimos": resultado_bfs["num_caminhos_minimos"],
+            },
+            "dfs": {
+                "alcancavel": resultado_dfs["alcancavel"],
+                "num_rotas": resultado_dfs["num_rotas"],
+                "rotas_nomes": rotas_dfs,
+            },
+            "dijkstra": {
+                "alcancavel": resultado_dij["alcancavel"],
+                "distancia_km": resultado_dij["distancia_km"],
+                "caminho": resultado_dij["caminho"],
+                "caminho_nomes": nomes_dij,
+            },
+            "kosaraju": {
+                "mesmo_scc": mesmo_scc,
+                "retorno_garantido": mesmo_scc,
+            },
+        }
 
     def ordenar(self, atributo: str, algoritmo: str) -> list[Encomenda]:
         if atributo not in _ATRIBUTOS_VALIDOS:
