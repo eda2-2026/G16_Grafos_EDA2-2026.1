@@ -33,6 +33,9 @@ class EncomendaUpdate(BaseModel):
     quantidade: int
     prioridade: int
 
+class DestinoIn(BaseModel):
+    destino_id: int
+
 @app.get("/")
 def pagina_principal():
     return FileResponse("index.html")
@@ -41,7 +44,20 @@ def pagina_principal():
 def listar_todas():
     # Retorna todas as encomendas em ordem de ID
     encomendas = g.listar()
-    return [{"id": e.id, "nome": e.nome, "data_postagem": str(e.data_postagem), "peso": e.peso, "quantidade": e.quantidade, "prioridade": e.prioridade} for e in encomendas]
+    resultado = []
+    for e in encomendas:
+        local = g.grafo.buscar_local(e.destino_id) if e.destino_id is not None else None
+        resultado.append({
+            "id": e.id,
+            "nome": e.nome,
+            "data_postagem": str(e.data_postagem),
+            "peso": e.peso,
+            "quantidade": e.quantidade,
+            "prioridade": e.prioridade,
+            "destino_id": e.destino_id,
+            "destino_nome": local.nome if local else None,
+        })
+    return resultado
 
 @app.get("/encomendas/prioridade")
 def listar_por_prioridade():
@@ -88,15 +104,21 @@ def gerar_massa_teste(quantidade: int):
     marcas = ["Dell", "Razer", "Logitech", "Corsair", "Asus", "Acer", "LG", "Samsung"]
     data_base = date.today()
 
+    # IDs disponíveis no grafo, excluindo o depósito (id=0) que é sempre a origem
+    destinos_possiveis = [local.id for local in g.grafo.locais() if local.id != 0]
+
     for _ in range(quantidade):
         nome = f"{random.choice(tipos)} {random.choice(marcas)} {random.randint(100, 999)}"
         dt = data_base - timedelta(days=random.randint(0, 365))
         peso = round(random.uniform(0.1, 50.0), 2)
         qtd = random.randint(1, 100)
         prio = random.randint(1, 5)
-        g.criar(nome, dt, peso, qtd, prio)
+        enc = g.criar(nome, dt, peso, qtd, prio)
+        # Atribui destino aleatório — o usuário pode alterar pelo dropdown
+        g.definir_destino(enc.id, random.choice(destinos_possiveis))
 
-    return {"mensagem": f"{quantidade} encomendas criadas e indexadas nas Árvores Rubro-Negras!"}
+    return {"mensagem": f"{quantidade} encomendas criadas com destinos aleatórios!"}
+
 
 # --- Rota para Visualizar a Árvore (bônus!) ---
 def serializar_nodo(nodo, arvore):
@@ -116,3 +138,44 @@ def arvore_json(tipo: str):
     # tipo: 'id' ou 'prioridade'
     arvore = g._arvore_id if tipo == 'id' else g._arvore_prioridade
     return serializar_nodo(arvore._raiz, arvore)
+
+
+# -----------------------------------------------------------------------
+# Endpoints do Grafo
+# -----------------------------------------------------------------------
+
+@app.get("/grafo")
+def grafo_json():
+    """Serializa o grafo (locais + estradas) para o frontend D3."""
+    return g.grafo.serializar()
+
+
+@app.patch("/encomendas/{id}/destino")
+def definir_destino(id: int, dados: DestinoIn):
+    """Vincula um Local do grafo como destino de uma encomenda."""
+    enc = g.definir_destino(id, dados.destino_id)
+    if enc is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Encomenda não encontrada ou local inválido."
+        )
+    local = g.grafo.buscar_local(enc.destino_id)
+    return {
+        "mensagem": "Destino definido com sucesso!",
+        "encomenda_id": enc.id,
+        "destino_id": enc.destino_id,
+        "destino_nome": local.nome if local else None,
+    }
+
+
+@app.get("/encomendas/{id}/analise")
+def analisar_rota(id: int):
+    """Roda BFS, DFS, Dijkstra e Kosaraju do depósito até o destino
+    da encomenda e retorna o resultado consolidado."""
+    resultado = g.analisar_rota(id)
+    if resultado is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Encomenda não encontrada ou sem destino definido."
+        )
+    return resultado
