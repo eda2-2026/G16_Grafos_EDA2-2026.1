@@ -12,7 +12,7 @@
             stroke-width: 2px;
         }
         .node text {
-            font: 16px sans-serif; /* Aumentado para melhor legibilidade */
+            font: 16px sans-serif;
             fill: white;
             font-weight: bold;
         }
@@ -21,45 +21,90 @@
             stroke: #ccc;
             stroke-width: 2px;
         }
+
+        /* ---- Painel de Análise ---- */
+        #painel-analise {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        #painel-analise.visivel {
+            display: block;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .rota-tag {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            border-radius: 9999px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .algo-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+        .algo-titulo {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.4rem;
+        }
+        .caminho-arrow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+        }
+        .caminho-arrow span { font-weight: 600; }
+        .caminho-arrow .seta { color: #94a3b8; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
 
     <div class="w-full max-w-[98%] mx-auto bg-white p-6 rounded-xl shadow-lg">
         <h1 class="text-3xl font-bold mb-6 text-gray-800 border-b pb-4">Gerenciador de Encomendas (Árvore Rubro-Negra)</h1>
-        
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
+
             <div class="bg-gray-50 p-6 border rounded-lg shadow-sm h-fit">
                 <h2 class="text-xl font-semibold mb-4 text-gray-700">Painel de Controle</h2>
                 <form id="form-cadastro" onsubmit="salvarEncomenda(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="hidden" id="encomenda-id" value="">
-                    
+
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Produto</label>
                         <input type="text" id="novo-nome" placeholder="Ex: Placa de Vídeo" required class="w-full border p-2 rounded focus:ring-2 outline-none">
                     </div>
-                    
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
                         <input type="date" id="nova-data" required class="w-full border p-2 rounded focus:ring-2 outline-none">
                     </div>
-                    
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Peso</label>
                         <input type="number" id="novo-peso" step="0.01" required class="w-full border p-2 rounded focus:ring-2 outline-none">
                     </div>
-                    
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Qtd</label>
                         <input type="number" id="nova-qtd" required class="w-full border p-2 rounded focus:ring-2 outline-none">
                     </div>
-                    
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade (1-5)</label>
                         <input type="number" id="nova-prio" min="1" max="5" required class="w-full border p-2 rounded focus:ring-2 outline-none">
                     </div>
-                    
+
                     <button type="submit" id="btn-submit" class="bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 font-bold transition-colors md:col-span-2">
                         + Cadastrar / Atualizar
                     </button>
@@ -94,6 +139,7 @@
                                 <th class="p-3">Peso</th>
                                 <th class="p-3 text-center">Qtd</th>
                                 <th class="p-3 text-center">Prio</th>
+                                <th class="p-3">Destino</th>
                                 <th class="p-3 text-center">Ações</th>
                             </tr>
                         </thead>
@@ -101,6 +147,48 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- ====== Painel de Análise de Rota ====== -->
+        <div id="painel-analise" class="mt-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-6 shadow-md">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-lg font-extrabold text-indigo-800" id="analise-titulo">Análise de Rota</h2>
+                    <p class="text-sm text-indigo-500" id="analise-subtitulo"></p>
+                </div>
+                <button onclick="fecharAnalise()" class="text-indigo-300 hover:text-indigo-600 text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <!-- Badge: entrega direta -->
+            <div id="badge-direta" class="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                <!-- BFS -->
+                <div class="algo-card">
+                    <p class="algo-titulo text-blue-700">&#x1F535; BFS &mdash; Menor caminho (saltos)</p>
+                    <div id="analise-bfs" class="text-sm text-gray-700"></div>
+                </div>
+
+                <!-- Dijkstra -->
+                <div class="algo-card">
+                    <p class="algo-titulo text-green-700">&#x1F7E2; Dijkstra &mdash; Menor caminho (km)</p>
+                    <div id="analise-dijkstra" class="text-sm text-gray-700"></div>
+                </div>
+
+                <!-- DFS -->
+                <div class="algo-card">
+                    <p class="algo-titulo text-orange-700">&#x1F7E0; DFS &mdash; Todas as rotas</p>
+                    <div id="analise-dfs" class="text-sm text-gray-700 max-h-48 overflow-y-auto"></div>
+                </div>
+
+                <!-- Kosaraju -->
+                <div class="algo-card">
+                    <p class="algo-titulo text-purple-700">&#x1F7E3; Kosaraju &mdash; Retorno garantido?</p>
+                    <div id="analise-kosaraju" class="text-sm text-gray-700"></div>
+                </div>
+
             </div>
         </div>
 
@@ -118,19 +206,51 @@
     </div>
 
     <script>
-        // Função para carregar itens na tabela
+        // Cache dos locais do grafo carregados na inicialização
+        let locaisGrafo = [];
+
+        async function carregarLocaisGrafo() {
+            try {
+                const res = await fetch('http://localhost:8000/grafo');
+                const dados = await res.json();
+                locaisGrafo = dados.locais;
+            } catch (e) {
+                console.error('Erro ao carregar grafo:', e);
+            }
+        }
+
+        function construirDropdownDestino(encId, destinoAtual) {
+            const opts = locaisGrafo.map(l => {
+                const sel = (l.id === destinoAtual) ? 'selected' : '';
+                return `<option value="${l.id}" ${sel}>${l.nome}</option>`;
+            }).join('');
+            return `
+                <div class="flex items-center gap-1">
+                    <select id="dest-${encId}"
+                        onchange="salvarDestino(${encId})"
+                        class="text-xs border rounded px-1 py-1 max-w-[130px] focus:ring-1 focus:ring-indigo-400 outline-none">
+                        <option value="">-- sem destino --</option>
+                        ${opts}
+                    </select>
+                    <button
+                        onclick="analisarRota(${encId})"
+                        title="Analisar Rota"
+                        class="text-indigo-600 hover:text-indigo-800 font-bold text-base leading-none px-1">&#x1F50D;</button>
+                </div>`;
+        }
+
         async function carregarTabela() {
             try {
-                const url = document.getElementById('tipo-arvore').value === 'id' 
-                    ? 'http://localhost:8000/encomendas' 
+                const url = document.getElementById('tipo-arvore').value === 'id'
+                    ? 'http://localhost:8000/encomendas'
                     : 'http://localhost:8000/encomendas/prioridade';
-                
+
                 const resposta = await fetch(url);
                 const encomendas = await resposta.json();
-                
+
                 const corpoTabela = document.getElementById('tabela-corpo');
-                corpoTabela.innerHTML = ""; 
-                
+                corpoTabela.innerHTML = "";
+
                 encomendas.forEach(enc => {
                     corpoTabela.innerHTML += `
                         <tr class="hover:bg-gray-100 border-b">
@@ -144,6 +264,7 @@
                                     enc.prioridade >= 4 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                                 }">P${enc.prioridade}</span>
                             </td>
+                            <td class="p-3">${construirDropdownDestino(enc.id, enc.destino_id)}</td>
                             <td class="p-3 text-center">
                                 <button onclick="deletarEncomenda(${enc.id})" class="text-red-500 hover:text-red-700 font-bold">X</button>
                             </td>
@@ -154,8 +275,124 @@
             }
         }
 
+        async function salvarDestino(encId) {
+            const sel = document.getElementById(`dest-${encId}`);
+            const destinoId = parseInt(sel.value);
+            if (isNaN(destinoId)) return;
+            await fetch(`http://localhost:8000/encomendas/${encId}/destino`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ destino_id: destinoId })
+            });
+        }
+
+        async function analisarRota(encId) {
+            // Salva primeiro caso o usuário acabou de mudar o dropdown
+            await salvarDestino(encId);
+
+            try {
+                const res = await fetch(`http://localhost:8000/encomendas/${encId}/analise`);
+                if (!res.ok) {
+                    alert('Defina um destino para esta encomenda antes de analisar.');
+                    return;
+                }
+                const d = await res.json();
+                renderizarAnalise(d);
+            } catch (e) {
+                alert('Erro ao analisar rota.');
+            }
+        }
+
+        function renderizarAnalise(d) {
+            const painel = document.getElementById('painel-analise');
+
+            document.getElementById('analise-titulo').textContent =
+                `#${d.encomenda_id} — ${d.encomenda_nome}`;
+            document.getElementById('analise-subtitulo').textContent =
+                `Depósito → ${d.destino_nome}`;
+
+            // Badge entrega direta
+            const badge = document.getElementById('badge-direta');
+            if (d.entrega_direta) {
+                badge.textContent = '✅ Entrega direta — há estrada direta do depósito ao destino';
+                badge.className = 'mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-800';
+            } else {
+                badge.textContent = '🔀 Sem rota direta — é necessário passar por outros locais';
+                badge.className = 'mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-yellow-100 text-yellow-800';
+            }
+
+            // BFS
+            const bfsEl = document.getElementById('analise-bfs');
+            if (!d.bfs.alcancavel) {
+                bfsEl.innerHTML = '<p class="text-red-500 font-semibold">&#x26D4; Destino inalcançável</p>';
+            } else {
+                const caminhoBfs = d.bfs.caminho_nomes.map((n, i) =>
+                    i === 0 ? `<span>${n}</span>` : `<span class="seta">→</span><span>${n}</span>`
+                ).join('');
+                bfsEl.innerHTML = `
+                    <p class="text-2xl font-black text-blue-700">${d.bfs.distancia_saltos}
+                        <span class="text-sm font-normal text-gray-500">${d.bfs.distancia_saltos === 1 ? 'salto' : 'saltos'}</span>
+                    </p>
+                    <div class="caminho-arrow mt-1">${caminhoBfs}</div>
+                    <p class="text-gray-500 mt-2 text-xs">${d.bfs.num_caminhos_minimos} caminho(s) mínimo(s) igualmente curtos</p>`;
+            }
+
+            // Dijkstra
+            const dijEl = document.getElementById('analise-dijkstra');
+            if (!d.dijkstra.alcancavel) {
+                dijEl.innerHTML = '<p class="text-red-500 font-semibold">&#x26D4; Destino inalcançável</p>';
+            } else {
+                const caminhoDij = d.dijkstra.caminho_nomes.map((n, i) =>
+                    i === 0 ? `<span>${n}</span>` : `<span class="seta">→</span><span>${n}</span>`
+                ).join('');
+                dijEl.innerHTML = `
+                    <p class="text-2xl font-black text-green-700">${d.dijkstra.distancia_km.toFixed(1)}
+                        <span class="text-sm font-normal text-gray-500">km</span>
+                    </p>
+                    <div class="caminho-arrow mt-1">${caminhoDij}</div>`;
+            }
+
+            // DFS
+            const dfsEl = document.getElementById('analise-dfs');
+            if (!d.dfs.alcancavel) {
+                dfsEl.innerHTML = '<p class="text-red-500 font-semibold">&#x26D4; Nenhuma rota encontrada</p>';
+            } else {
+                const rotasHtml = d.dfs.rotas_nomes.map((rota, i) => {
+                    const tags = rota.map(n => `<span class="rota-tag">${n}</span>`).join('<span class="text-gray-400 mx-0.5">→</span>');
+                    return `<div class="flex flex-wrap items-center gap-0.5 mb-1"><span class="text-gray-400 text-xs mr-1">${i+1}.</span>${tags}</div>`;
+                }).join('');
+                dfsEl.innerHTML = `
+                    <p class="text-2xl font-black text-orange-600">${d.dfs.num_rotas}
+                        <span class="text-sm font-normal text-gray-500">rota(s)</span>
+                    </p>
+                    <div class="mt-2">${rotasHtml}</div>`;
+            }
+
+            // Kosaraju
+            const kEl = document.getElementById('analise-kosaraju');
+            if (d.kosaraju.retorno_garantido) {
+                kEl.innerHTML = `
+                    <p class="text-3xl mb-1">&#x2705;</p>
+                    <p class="font-bold text-green-700">Retorno garantido</p>
+                    <p class="text-gray-500 text-xs mt-1">Depósito e destino estão na mesma região fortemente conectada (mesmo SCC).</p>`;
+            } else {
+                kEl.innerHTML = `
+                    <p class="text-3xl mb-1">&#x26A0;&#xFE0F;</p>
+                    <p class="font-bold text-amber-700">Sem retorno automático</p>
+                    <p class="text-gray-500 text-xs mt-1">O destino está em uma região diferente — o entregador não consegue voltar pelo mesmo grafo.</p>`;
+            }
+
+            // Abre o painel com animação
+            painel.classList.add('visivel');
+            painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function fecharAnalise() {
+            document.getElementById('painel-analise').classList.remove('visivel');
+        }
+
         async function salvarEncomenda(event) {
-            event.preventDefault(); 
+            event.preventDefault();
             const payload = {
                 nome: document.getElementById('novo-nome').value,
                 data_postagem: document.getElementById('nova-data').value,
@@ -182,7 +419,7 @@
             await fetch(`http://localhost:8000/encomendas/${id}`, { method: 'DELETE' });
             carregarTodaInterface();
         }
-        
+
         async function gerarMassaTeste(qtd) {
             await fetch(`http://localhost:8000/gerar-teste/${qtd}`, { method: 'POST' });
             carregarTodaInterface();
@@ -195,27 +432,27 @@
                 const pDetalhes = document.getElementById('txt-proxima-detalhes');
                 const btn = document.getElementById('btn-despachar');
 
-                if(!resposta.ok) { 
+                if(!resposta.ok) {
                     pNome.innerText = "Nenhuma encomenda na fila";
                     pNome.className = "text-lg font-bold text-gray-400";
                     pDetalhes.innerText = "Sua árvore está vazia.";
                     btn.disabled = true;
                     btn.className = "bg-gray-300 text-gray-500 px-6 py-3 rounded-lg font-extrabold shadow-none cursor-not-allowed";
-                    return; 
+                    return;
                 }
-                
+
                 const enc = await resposta.json();
-                
+
                 pNome.innerText = `[ID: ${enc.id}] ${enc.nome}`;
                 pNome.className = "text-xl font-extrabold text-gray-800";
-                
+
                 const corPrio = enc.prioridade >= 4 ? 'text-red-600' : 'text-blue-600';
                 pDetalhes.innerHTML = `Prioridade Nível: <span class="font-bold ${corPrio}">${enc.prioridade}</span>`;
-                
+
                 btn.disabled = false;
                 btn.className = "bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-extrabold shadow-lg transform active:scale-95 transition-all";
                 btn.onclick = () => despacharProxima(enc.id);
-                
+
             } catch(e) { }
         }
 
@@ -224,7 +461,6 @@
                 await fetch(`http://localhost:8000/encomendas/${id}`, { method: 'DELETE' });
                 document.getElementById('quadro-entrega').classList.add('bg-green-100');
                 setTimeout(() => document.getElementById('quadro-entrega').classList.remove('bg-green-100'), 200);
-                
                 carregarTodaInterface();
             } catch (error) {
                 alert("Erro ao despachar a encomenda.");
@@ -246,12 +482,10 @@
                     return;
                 }
 
-                // Configurações dinâmicas do SVG baseadas no container
                 const width = container.clientWidth || 800;
                 const height = 750;
                 const margin = { top: 60, right: 20, bottom: 40, left: 20 };
 
-                // Convertendo para o formato do D3 Hierarchy
                 const root = d3.hierarchy(treeData, d => {
                     const children = [];
                     if (d.esq) children.push(d.esq);
@@ -259,7 +493,6 @@
                     return children;
                 });
 
-                // Utilizando nodeSize para manter o espaçamento fixo e legível entre nós
                 const treeLayout = d3.tree().nodeSize([85, 100]);
                 treeLayout(root);
 
@@ -270,11 +503,9 @@
                         svgG.attr("transform", event.transform);
                     }));
 
-                // Posiciona a raiz no meio horizontal do container
                 const svgG = svg.append("g")
                     .attr("transform", `translate(${width / 2},${margin.top})`);
 
-                // Adiciona links (linhas)
                 svgG.selectAll(".link")
                     .data(root.links())
                     .enter().append("path")
@@ -283,19 +514,16 @@
                         .x(d => d.x)
                         .y(d => d.y));
 
-                // Adiciona os nós
                 const node = svgG.selectAll(".node")
                     .data(root.descendants())
                     .enter().append("g")
                     .attr("class", "node")
                     .attr("transform", d => `translate(${d.x},${d.y})`);
 
-                // Círculo com tamanho aumentado (raio de 35px)
                 node.append("circle")
                     .attr("r", 35)
                     .style("fill", d => d.data.cor === "vermelho" ? "#ef4444" : "#1f2937");
 
-                // Texto centralizado dentro do círculo maior
                 node.append("text")
                     .attr("dy", "5")
                     .attr("text-anchor", "middle")
@@ -312,8 +540,11 @@
             desenharArvore();
         }
 
-        // Inicializa
-        window.onload = carregarTodaInterface;
+        // Inicializa: carrega o grafo primeiro, depois a interface
+        window.onload = async () => {
+            await carregarLocaisGrafo();
+            carregarTodaInterface();
+        };
     </script>
 </body>
 </html>
