@@ -7,6 +7,7 @@ import random
 
 from gerenciador import GerenciadorEncomendas
 from algoritmos import ALGORITMOS
+from grafo.semente import DEPOSITO_ID
 
 app = FastAPI(title="Sistema de Logística - Árvore Rubro-Negra")
 g = GerenciadorEncomendas()
@@ -35,6 +36,17 @@ class EncomendaUpdate(BaseModel):
 
 class DestinoIn(BaseModel):
     destino_id: int
+
+class LocalIn(BaseModel):
+    nome: str
+    x: float = 0.0
+    y: float = 0.0
+
+class EstradaIn(BaseModel):
+    origem_id: int
+    destino_id: int
+    distancia: float
+    bidirecional: bool = False
 
 @app.get("/")
 def pagina_principal():
@@ -148,6 +160,38 @@ def arvore_json(tipo: str):
 def grafo_json():
     """Serializa o grafo (locais + estradas) para o frontend D3."""
     return g.grafo.serializar()
+
+
+@app.post("/grafo/locais")
+def criar_local(local: LocalIn):
+    novo = g.grafo.adicionar_local(local.nome, local.x, local.y)
+    return {"id": novo.id, "nome": novo.nome, "x": novo.x, "y": novo.y}
+
+
+@app.delete("/grafo/locais/{id}")
+def excluir_local(id: int):
+    if id == DEPOSITO_ID:
+        raise HTTPException(status_code=400, detail="O depósito não pode ser removido.")
+    if not g.remover_local(id):
+        raise HTTPException(status_code=404, detail="Local não encontrado.")
+    return {"mensagem": "Local removido com sucesso!"}
+
+
+@app.post("/grafo/estradas")
+def criar_estrada(estrada: EstradaIn):
+    ok = g.grafo.adicionar_estrada(
+        estrada.origem_id, estrada.destino_id, estrada.distancia, estrada.bidirecional
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail="Locais inválidos ou distância inválida.")
+    return {"mensagem": "Estrada criada com sucesso!"}
+
+
+@app.delete("/grafo/estradas/{origem_id}/{destino_id}")
+def excluir_estrada(origem_id: int, destino_id: int):
+    if not g.grafo.remover_estrada(origem_id, destino_id):
+        raise HTTPException(status_code=404, detail="Estrada não encontrada.")
+    return {"mensagem": "Estrada removida com sucesso!"}
 
 
 @app.patch("/encomendas/{id}/destino")

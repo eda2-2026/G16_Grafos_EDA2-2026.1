@@ -116,6 +116,16 @@ class GerenciadorEncomendas:
         enc.destino_id = destino_id
         return enc
 
+    def remover_local(self, id_local: int) -> bool:
+        """Remove um local do grafo e limpa o destino das encomendas que
+        apontavam para ele, evitando referências penduradas."""
+        removido = self.grafo.remover_local(id_local)
+        if removido:
+            for enc in self.listar():
+                if enc.destino_id == id_local:
+                    enc.destino_id = None
+        return removido
+
     def analisar_rota(self, id_enc: int) -> dict | None:
         """Roda BFS, DFS, Dijkstra e Kosaraju do depósito até o destino
         da encomenda. Retorna None se a encomenda não existir ou não
@@ -138,7 +148,10 @@ class GerenciadorEncomendas:
         # --- DFS ---
         resultado_dfs = dfs(g, origem, destino)
         rotas_dfs = [
-            [g.buscar_local(v).nome for v in rota]
+            {
+                "caminho_nomes": [g.buscar_local(v).nome for v in rota],
+                "sugestoes_pacotes": self._pacotes_no_caminho(rota, origem, enc.id),
+            }
             for rota in resultado_dfs["rotas"]
         ]
 
@@ -173,7 +186,7 @@ class GerenciadorEncomendas:
             "dfs": {
                 "alcancavel": resultado_dfs["alcancavel"],
                 "num_rotas": resultado_dfs["num_rotas"],
-                "rotas_nomes": rotas_dfs,
+                "rotas": rotas_dfs,
             },
             "dijkstra": {
                 "alcancavel": resultado_dij["alcancavel"],
@@ -186,6 +199,27 @@ class GerenciadorEncomendas:
                 "retorno_garantido": mesmo_scc,
             },
         }
+
+    def _pacotes_no_caminho(self, rota: list[int], origem: int, excluir_id: int) -> list[dict]:
+        """Outras encomendas pendentes cujo destino está em algum ponto da
+        `rota` (exceto o depósito), ou seja, que podem ser entregues na
+        mesma viagem por já estarem no trajeto. Ordenadas por prioridade."""
+        paradas = set(rota) - {origem}
+        sugestoes = [
+            enc for enc in self.listar()
+            if enc.id != excluir_id and enc.destino_id in paradas
+        ]
+        sugestoes.sort(key=lambda enc: (-enc.prioridade, enc.id))
+        return [
+            {
+                "id": enc.id,
+                "nome": enc.nome,
+                "prioridade": enc.prioridade,
+                "destino_id": enc.destino_id,
+                "destino_nome": self.grafo.buscar_local(enc.destino_id).nome,
+            }
+            for enc in sugestoes
+        ]
 
     def ordenar(self, atributo: str, algoritmo: str) -> list[Encomenda]:
         if atributo not in _ATRIBUTOS_VALIDOS:

@@ -16,8 +16,8 @@ Esse trabalho é uma continuação do Trabalho 3 da disciplina, agora implementa
 ```
 .
 ├── main.py              # Ponto de entrada e menu interativo
-├── api.py               # API FastAPI: endpoints REST de encomendas e do grafo
-├── index.html           # Frontend (visualização da árvore e do grafo com D3)
+├── api.py               # API FastAPI: endpoints REST de encomendas, análise de rota e CRUD do grafo
+├── index.html           # Frontend (árvore, mapa do grafo e CRUD de locais/estradas com D3)
 ├── encomenda.py         # Modelo de dados: classe Encomenda (com destino_id)
 ├── gerenciador.py       # GerenciadorEncomendas: CRUD + ordenação + buscas + análise de rota
 ├── arvore/
@@ -142,9 +142,26 @@ Depósito até o destino e combina os resultados:
 - **Análise de rota individual** — para uma encomenda com destino definido, combina BFS, DFS,
   Dijkstra e Kosaraju, indicando se há **entrega direta** (aresta única origem→destino), o menor
   caminho em saltos, o menor caminho em km, todas as rotas possíveis e se o retorno ao depósito é garantido.
+- **Sugestão de pacotes na rota** — para cada rota encontrada pelo DFS, o sistema lista outras
+  encomendas pendentes cujo destino esteja em algum ponto do trajeto (exceto o depósito), já que o
+  entregador passaria por ali de qualquer forma. As sugestões aparecem ordenadas por prioridade no
+  card de DFS do painel de análise .
 - **Análise de múltiplas entregas** (`analisar_rotas`) — usa os SCCs de Kosaraju para agrupar
   vários destinos por região e dizer se todas as entregas cabem em **uma rota única** ou se é
   preciso dividir em **rotas separadas**, sinalizando destinos inalcançáveis ou inexistentes.
+
+### Gerenciamento do grafo
+
+O grafo pode ser editado direto pela interface, na seção **"Gerenciar Grafo (Locais e Estradas)"**:
+adicionar/remover locais e estradas (com distância e opção de mão dupla). A tabela de encomendas,
+os dropdowns de destino e o mapa do grafo se atualizam automaticamente a cada alteração.
+
+### Visualizador estrutural do grafo
+
+O seletor "Visualizador Estrutural" tem uma terceira opção, **Grafo de Locais (Mapa)**, que desenha
+com D3 todos os locais nas coordenadas do grafo-semente e as estradas entre eles: linha cinza
+contínua com seta nas duas pontas para vias de mão dupla, e linha laranja tracejada com seta única
+para as pontes de mão única entre regiões.
 
 
 ## Requisitos
@@ -156,19 +173,25 @@ Depósito até o destino e combina os resultados:
 
 ## Como executar
 
-1. Instale as dependências executando o comando:
+1. Crie o ambiente virtual:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+2. Instale as dependências executando o comando:
 ```bash
 python -m pip install fastapi uvicorn pydantic
 ```
 
-2. Inicialize o servidor local:
+3. Inicialize o servidor local:
 ```bash
 python -m uvicorn api:app --reload
 ```
 
-3. Abra o arquivo `index.html` no seu navegador favorito para visualizar e interagir com o sistema e a Árvore Rubro-Negra!
+4. Abra o arquivo `index.html` no seu navegador favorito para visualizar e interagir com o sistema e a Árvore Rubro-Negra!
 
 ## Apresentação do Projeto
 
 Confira o vídeo de apresentação demonstrando o funcionamento interno da Árvore Rubro-Negra e a interface interativa:
- [Vídeo de Apresentação no YouTube](https://youtu.be/06MbWmKuyyU)
+ [Vídeo de Apresentação no YouTube]()
