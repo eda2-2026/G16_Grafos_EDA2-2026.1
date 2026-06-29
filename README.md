@@ -193,5 +193,5 @@ python -m uvicorn api:app --reload
 
 ## Apresentação do Projeto
 
-Confira o vídeo de apresentação demonstrando o funcionamento interno da Árvore Rubro-Negra e a interface interativa:
- [Vídeo de Apresentação no YouTube]()
+Confira o vídeo de apresentação demonstrando o funcionamento interno da estrutura de Grafos e a interface interativa:
+ [Vídeo de Apresentação no YouTube](https://youtu.be/dHYGBYIBeGE)
